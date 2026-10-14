@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Closest Pair of Points: Brute-Force vs Divide-and-Conquer</title>
+<style>
+  :root{
+    --bg:#f5f7fa; --card:#ffffff; --ink:#1c2330; --muted:#5b6678; --line:#e1e5ec;
+    --brute:#d62839; --dc:#2563eb; --strip:#f5b301; --pt:#8a94a6; --ok:#15803d; --best:#16a34a;
+    --accent:#0f766e; --canvas:#fbfcfe; --grid:#e9edf3;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f141b; --card:#171e28; --ink:#e7ecf3; --muted:#9aa6b8; --line:#2a3443;
+      --brute:#ff6b7a; --dc:#6ea0ff; --strip:#f5c542; --pt:#6f7b8f; --ok:#4ade80; --best:#4ade80;
+      --accent:#2dd4bf; --canvas:#121821; --grid:#222b38;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  header{padding:28px 20px 8px;max-width:1100px;margin:0 auto}
+  h1{margin:0 0 4px;font-size:1.6rem;letter-spacing:-.01em}
+  header p{margin:0;color:var(--muted)}
+  main{max-width:1100px;margin:0 auto;padding:12px 20px 48px;display:grid;gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .card h2{margin:0 0 10px;font-size:1.05rem}
+  .row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+  label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--muted)}
+  input,select,button{font:inherit;color:var(--ink)}
+  input,select{background:var(--canvas);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:110px}
+  button{background:var(--canvas);border:1px solid var(--line);border-radius:8px;padding:7px 14px;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .out{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92rem;
+       background:var(--canvas);border:1px solid var(--line);border-radius:8px;padding:12px 14px;
+       white-space:pre-wrap;word-break:break-word}
+  .out .b{color:var(--brute);font-weight:700} .out .d{color:var(--dc);font-weight:700}
+  .badge{display:inline-block;margin-top:8px;font-size:.85rem;font-weight:600;color:var(--ok)}
+  .badge.bad{color:var(--brute)}
+  .note{color:var(--muted);font-size:.85rem;margin:8px 0 0}
+  .canvas-wrap{width:100%}
+  canvas{display:block;border:1px solid var(--line);border-radius:8px;background:var(--canvas)}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin:10px 0 0;font-size:.85rem;color:var(--muted)}
+  .legend span::before{content:"";display:inline-block;width:12px;height:12px;border-radius:3px;
+                        margin-right:6px;vertical-align:-1px;background:var(--c)}
+  .legend .ring::before{background:transparent;border:2px solid var(--c);border-radius:50%}
+  .tabs{display:flex;gap:8px;margin-bottom:12px}
+  .anim-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0 0}
+  .anim-controls input[type=range]{flex:1;min-width:140px;padding:0}
+  .step-box{margin-top:10px;padding:10px 14px;border-left:4px solid var(--accent);background:var(--canvas);
+            border-radius:0 8px 8px 0;min-height:3.4em}
+  .step-box small{color:var(--muted);display:block}
+  table{border-collapse:collapse;width:100%;font-size:.9rem;margin-top:12px}
+  th,td{text-align:right;padding:6px 10px;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--muted);font-weight:600}
+  ul.tests{list-style:none;margin:10px 0 0;padding:0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85rem}
+  ul.tests li{padding:3px 0} .pass{color:var(--ok);font-weight:700} .fail{color:var(--brute);font-weight:700}
+  ol.how{margin:0;padding-left:20px} ol.how li{margin:4px 0}
+  .two{display:grid;gap:16px;grid-template-columns:1fr}
+  @media (min-width:900px){ .two{grid-template-columns:1fr 1fr} }
+  [hidden]{display:none !important}
+</style>
+</head>
+<body>
+<header>
+  <h1>Closest Pair of Points</h1>
+  <p>Brute-Force O(N²) vs Divide-and-Conquer O(N log N): plot, strip, running time and step-by-step animation.</p>
+</header>
+
+<main>
+  <noscript><div class="card">This page needs JavaScript.</div></noscript>
+
+  <section class="card" aria-labelledby="h-input">
+    <h2 id="h-input">1. Input</h2>
+    <div class="row">
+      <label>N (number of points)
+        <input id="n" type="number" min="0" max="20000" value="40"></label>
+      <label>Point set
+        <select id="dataset">
+          <option value="random">Random (floats)</option>
+          <option value="dups">With duplicate points</option>
+          <option value="diag">Collinear (diagonal)</option>
+          <option value="samex">All share the same x</option>
+          <option value="samey">All share the same y</option>
+          <option value="grid">Integer grid (many ties)</option>
+        </select></label>
+      <label>Seed
+        <input id="seed" type="number" value="7"></label>
+      <button id="go" class="primary">Generate &amp; run</button>
+      <button id="newseed" type="button">New random seed</button>
+    </div>
+    <p class="note">Points are generated in the browser (x, y in 0–100). The same seed gives the same points, so results are repeatable.</p>
+  </section>
+
+  <section class="card" aria-labelledby="h-out">
+    <h2 id="h-out">2. Output</h2>
+    <div id="out" class="out" aria-live="polite">Press “Generate &amp; run”.</div>
+    <div id="agree" class="badge"></div>
+    <p class="note">If several pairs are tied for the smallest distance, the two algorithms may report different pairs with the same distance.</p>
+  </section>
+
+  <section class="card" aria-labelledby="h-vis">
+    <h2 id="h-vis">3. Visualization</h2>
+    <div class="tabs" role="group" aria-label="View">
+      <button id="tab-result" aria-pressed="true">Result</button>
+      <button id="tab-anim" aria-pressed="false">Animation (split &amp; merge)</button>
+    </div>
+    <div class="canvas-wrap"><canvas id="plot" role="img" aria-label="Scatter plot of the points with the closest pairs highlighted"></canvas></div>
+    <div class="legend" id="legend-result">
+      <span style="--c:var(--pt)">points</span>
+      <span class="ring" style="--c:var(--brute)">Brute-Force closest pair (solid line)</span>
+      <span style="--c:var(--dc)">Divide-and-Conquer closest pair (dashed line)</span>
+      <span style="--c:#000;--c:var(--ink)">dividing line</span>
+      <span style="--c:var(--strip)">strip of width 2d</span>
+    </div>
+    <div class="legend" id="legend-anim" hidden>
+      <span style="--c:var(--pt)">other points</span>
+      <span style="--c:var(--dc)">points of the current sub-problem (colour = depth)</span>
+      <span style="--c:var(--strip)">strip |x − line| &lt; d</span>
+      <span style="--c:#f97316">pair being compared</span>
+      <span style="--c:var(--best)">best pair so far</span>
+    </div>
+
+    <div id="anim-ui" hidden>
+      <div class="anim-controls">
+        <button id="a-reset" title="Back to start" aria-label="Back to start">⏮</button>
+        <button id="a-prev" title="Previous step (←)" aria-label="Previous step">◀</button>
+        <button id="a-play" title="Play / pause (space)" aria-label="Play">▶ Play</button>
+        <button id="a-next" title="Next step (→)" aria-label="Next step">▶|</button>
+        <input id="a-slider" type="range" min="0" max="0" value="0" aria-label="Step">
+        <label style="flex-direction:row;align-items:center;gap:6px">Speed
+          <select id="a-speed" style="min-width:90px">
+            <option value="1000">Slow</option>
+            <option value="450" selected>Normal</option>
+            <option value="150">Fast</option>
+            <option value="40">Very fast</option>
+          </select></label>
+      </div>
+      <div class="step-box" id="step-box" aria-live="polite"></div>
+    </div>
+    <p class="note" id="anim-note"></p>
+  </section>
+
+  <section class="card" aria-labelledby="h-bench">
+    <h2 id="h-bench">4. Running time vs N</h2>
+    <div class="row" style="margin-bottom:10px">
+      <button id="bench" class="primary">Run benchmark</button>
+      <label style="flex-direction:row;align-items:center;gap:6px">
+        <input id="log" type="checkbox" style="min-width:0"> log-log scale</label>
+      <span class="note" id="bench-status" style="margin:0"></span>
+    </div>
+    <div class="canvas-wrap"><canvas id="chart" role="img" aria-label="Line chart of running time against N for both algorithms"></canvas></div>
+    <table id="bench-table" hidden>
+      <thead><tr><th>N</th><th>Brute-Force (ms)</th><th>Divide &amp; Conquer (ms)</th><th>Speed-up</th><th>Agree</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p class="note">Each size uses a fresh random point set (median of several runs). Doubling N should roughly quadruple the brute-force time but only a little more than double the divide-and-conquer time.</p>
+  </section>
+
+  <div class="two">
+    <section class="card" aria-labelledby="h-test">
+      <h2 id="h-test">5. Corner cases &amp; agreement check</h2>
+      <button id="tests">Run tests</button>
+      <ul class="tests" id="test-list"></ul>
+    </section>
+
+    <section class="card" aria-labelledby="h-how">
+      <h2 id="h-how">How divide-and-conquer works</h2>
+      <ol class="how">
+        <li>Sort the points by x and by y once.</li>
+        <li><b>Divide:</b> split the x-sorted list in half with a vertical line.</li>
+        <li><b>Conquer:</b> solve both halves recursively. Let d = min(d<sub>left</sub>, d<sub>right</sub>).</li>
+        <li><b>Combine:</b> a closer pair could straddle the line, so look only at points within d of it (the strip), in y order.</li>
+        <li>Each strip point needs comparing with at most 7 others (those less than d above it), so the combine step is O(N) and the total is O(N log N).</li>
+      </ol>
+    </section>
+  </div>
+</main>
+
+<!-- ===================== Algorithms (no DOM access) ===================== -->
+<script id="algo">
+'use strict';
+const fmt  = v => String(Math.round(v * 10000) / 10000);
+const fmt6 = v => v.toFixed(6);
+/* Euclidean length; much faster than Math.hypot in JavaScript. */
+const hyp = (dx, dy) => Math.sqrt(dx * dx + dy * dy);
+
+/* Brute force: try every pair, O(N^2). */
+function bruteForce(P) {
+  const n = P.length;
+  if (n < 2) return null;
+  let best = Infinity, pair = null;
+  for (let i = 0; i < n; i++) {
+    const a = P[i];
+    for (let j = i + 1; j < n; j++) {
+      const b = P[j];
+      const d = hyp(a.x - b.x, a.y - b.y);
+      if (d < best) { best = d; pair = [a, b]; }
+    }
+  }
+  return { d: best, pair };
+}
+
+/* Divide and conquer, O(N log N).
+   Points carry a unique id so duplicates never get mixed up when the
+   y-sorted list is split into left/right halves.
+   opts.rec  : array that receives animation steps (optional)
+   opts.info : object that receives the top-level split/strip (optional) */
+function closestDC(P, opts) {
+  opts = opts || {};
+  if (P.length < 2) return null;
+  const rec = opts.rec || null, info = opts.info || null;
+  const detail = !!rec && P.length <= 60;        // record every comparison only for small inputs
+  const byX = (a, b) => a.x - b.x || a.y - b.y || a.id - b.id;
+  const byY = (a, b) => a.y - b.y || a.x - b.x || a.id - b.id;
+  const px = P.slice().sort(byX);
+  const py = P.slice().sort(byY);
+
+  function solve(px, py, depth) {
+    const n = px.length;
+    const xmin = px[0].x, xmax = px[n - 1].x;
+
+    // Base case: 2 or 3 points -> brute force
+    if (n <= 3) {
+      let best = Infinity, pair = null;
+      for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+        const d = hyp(px[i].x - px[j].x, px[i].y - px[j].y);
+        if (d < best) { best = d; pair = [px[i], px[j]]; }
+      }
+      if (rec) rec.push({ type: 'base', depth, ids: px.map(p => p.id), xmin, xmax, best: { d: best, pair }, final: depth === 0,
+        text: `Base case: only ${n} points here, so check all pairs by brute force. Closest distance = ${fmt6(best)}.` });
+      return { d: best, pair };
+    }
+
+    // Divide
+    const mid = n >> 1, splitX = px[mid].x;
+    const ids = rec ? px.map(p => p.id) : null;
+    if (rec) rec.push({ type: 'split', depth, ids, xmin, xmax, splitX,
+      text: `Divide: ${n} points. Draw a vertical line at x = ${fmt(splitX)}: ${mid} points go left, ${n - mid} go right.` });
+    const leftIds = new Set();
+    for (let i = 0; i < mid; i++) leftIds.add(px[i].id);
+    const ly = [], ry = [];
+    for (const p of py) (leftIds.has(p.id) ? ly : ry).push(p);   // both stay sorted by y
+
+    // Conquer
+    const L = solve(px.slice(0, mid), ly, depth + 1);
+    const R = solve(px.slice(mid), ry, depth + 1);
+    let best = L.d <= R.d ? L : R;
+    let d = best.d, pair = best.pair;
+    const d0 = d;
+
+    // Combine: strip around the dividing line
+    const strip = [];
+    for (const p of py) if (Math.abs(p.x - splitX) < d0) strip.push(p);
+    const stripIds = rec ? strip.map(p => p.id) : null;
+    if (rec) rec.push({ type: 'merge', depth, ids, xmin, xmax, splitX, d0, stripIds, best: { d, pair },
+      text: `Conquer done: left d = ${fmt6(L.d)}, right d = ${fmt6(R.d)}, so d = ${fmt6(d0)}. ` +
+            `A closer pair could still cross the line, so check the strip |x − ${fmt(splitX)}| < d, which holds ${strip.length} point(s).` });
+
+    for (let i = 0; i < strip.length; i++) {
+      for (let j = i + 1; j < strip.length && strip[j].y - strip[i].y < d; j++) {
+        const dd = hyp(strip[i].x - strip[j].x, strip[i].y - strip[j].y);
+        const improved = dd < d;
+        if (improved) { d = dd; pair = [strip[i], strip[j]]; }
+        if (detail) rec.push({ type: 'cmp', depth, ids, xmin, xmax, splitX, d0, stripIds,
+          a: strip[i], b: strip[j], dd, improved, best: { d, pair },
+          text: improved
+            ? `Compare two strip points: distance ${fmt6(dd)} is smaller than the best so far, so it becomes the new best.`
+            : `Compare two strip points: distance ${fmt6(dd)} is not smaller than the best so far (${fmt6(d)}).` });
+      }
+    }
+    if (depth === 0 && info) { info.splitX = splitX; info.d0 = d0; info.strip = strip; }
+    if (rec) rec.push({ type: 'merged', depth, ids, xmin, xmax, best: { d, pair }, final: depth === 0,
+      text: depth === 0
+        ? `Done! The closest pair of all ${n} points has distance ${fmt6(d)}.`
+        : `Merge complete: the closest pair of these ${n} points has distance ${fmt6(d)}. Return it to the parent.` });
+    return { d, pair };
+  }
+  return solve(px, py, 0);
+}
+
+/* Seeded random numbers (mulberry32) so a seed repeats the same points. */
+function makeRng(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function generatePoints(n, kind, rng) {
+  const r2 = v => Math.round(v * 100) / 100;
+  const U = () => r2(rng() * 100);
+  const pts = [];
+  for (let i = 0; i < n; i++) {
+    let x, y;
+    switch (kind) {
+      case 'dups':
+        if (i > 0 && rng() < 0.2) { const q = pts[Math.floor(rng() * i)]; x = q.x; y = q.y; }
+        else { x = U(); y = U(); }
+        break;
+      case 'diag':  x = U(); y = r2(x * 0.6 + 10); break;
+      case 'samex': x = 50; y = U(); break;
+      case 'samey': x = U(); y = 50; break;
+      case 'grid':  x = Math.floor(rng() * 11) * 10; y = Math.floor(rng() * 11) * 10; break;
+      default:      x = U(); y = U();
+    }
+    pts.push({ x, y, id: i });
+  }
+  return pts;
+}
+
+const mk = arr => arr.map(([x, y], i) => ({ x, y, id: i }));
+const agree = (a, b) => Math.abs(a - b) <= 1e-9 + 1e-9 * Math.max(Math.abs(a), Math.abs(b));
+
+function runTests() {
+  const cases = [
+    ['N = 2',                    [[0,0],[3,4]], 5],
+    ['duplicate points',         [[1,1],[5,5],[1,1],[9,2]], 0],
+    ['all points identical',     [[2,2],[2,2],[2,2],[2,2],[2,2],[2,2]], 0],
+    ['collinear (horizontal)',   [[0,3],[10,3],[4,3],[4.5,3],[20,3]], 0.5],
+    ['collinear (vertical)',     [[7,0],[7,9],[7,4],[7,4.25],[7,-3]], 0.25],
+    ['collinear (diagonal)',     [0,5,9,10,20].map(i => [i, i]), Math.SQRT2],
+    ['same x for all',           [0,6,13,14,30,50].map(y => [2, y]), 1],
+    ['same y for all',           [0,6,13,15,30,50].map(x => [x, 2]), 2],
+    ['negative / mixed',         [[-5,-5],[5,5],[-5.5,-5],[0,0]], 0.5],
+    ['pair split by the line',   [[0,0],[10,10],[4.9,5],[5.1,5],[20,0],[0,20]], 0.2],
+  ];
+  const results = [];
+  for (const [name, arr, expected] of cases) {
+    const P = mk(arr), b = bruteForce(P).d, c = closestDC(P).d;
+    results.push({ ok: agree(b, expected) && agree(c, expected), text: `${name.padEnd(24)} brute=${fmt6(b)}  dc=${fmt6(c)}` });
+  }
+  const nullOk = bruteForce(mk([[1,1]])) === null && closestDC([]) === null;
+  results.push({ ok: nullOk, text: 'N = 1 and N = 0         both return "no pair"' });
+
+  const rng = makeRng(12345);
+  const trials = 1000;
+  let bad = 0;
+  for (let t = 0; t < trials; t++) {
+    const n = 2 + Math.floor(rng() * 39);
+    const r = [3, 10, 1000][Math.floor(rng() * 3)];
+    const P = [];
+    for (let i = 0; i < n; i++) P.push({ x: Math.floor(rng() * (r + 1)), y: Math.floor(rng() * (r + 1)), id: i });
+    if (!agree(bruteForce(P).d, closestDC(P).d)) bad++;
+  }
+  results.push({ ok: bad === 0, text: `Random stress test      ${trials - bad}/${trials} agree (many duplicates / collinear)` });
+  return results;
+}
+</script>
+
+<!-- ===================== User interface ===================== -->
+<script id="ui">
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const DEPTH_COLORS = ['#2563eb', '#0f766e', '#9333ea', '#ea580c', '#be185d', '#4d7c0f', '#0369a1'];
+  const MAX_ANIM_N = 300;
+
+  const state = { points: [], bf: null, dc: null, info: {}, steps: [], idx: 0, mode: 'result', timer: null };
+
+  function setupCanvas(c, aspect, minH, maxH) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.max(240, c.parentElement.clientWidth);
+    const h = Math.round(Math.max(minH, Math.min(maxH, w * aspect)));
+    c.style.width = w + 'px'; c.style.height = h + 'px';
+    c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
+    const ctx = c.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w, h };
+  }
+
+  function niceTicks(lo, hi, count) {
+    const span = hi - lo;
+    if (!(span > 0)) return [lo];
+    const raw = span / count, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const norm = raw / mag, step = (norm < 1.5 ? 1 : norm < 3.5 ? 2 : norm < 7.5 ? 5 : 10) * mag;
+    const out = [];
+    for (let v = Math.ceil(lo / step) * step; v <= hi + step * 1e-9; v += step) out.push(Math.round(v / step) * step);
+    return out;
+  }
+
+  /* ---------- timing ---------- */
+  function medianTime(fn, reps) {
+    const t = [];
+    for (let i = 0; i < reps; i++) { const s = performance.now(); fn(); t.push(performance.now() - s); }
+    t.sort((a, b) => a - b);
+    return t[Math.floor(t.length / 2)];
+  }
+  const repsFor = n => n <= 2000 ? 5 : n <= 5000 ? 3 : 1;
+
+  /* ---------- main run ---------- */
+  function run() {
+    stopPlay();
+    const n = Math.max(0, Math.min(20000, parseInt($('n').value, 10) || 0));
+    $('n').value = n;
+    const seed = parseInt($('seed').value, 10) || 0;
+    const pts = generatePoints(n, $('dataset').value, makeRng(seed));
+    state.points = pts; state.bf = state.dc = null; state.info = {}; state.steps = []; state.idx = 0;
+
+    if (n < 2) {
+      $('out').textContent = 'At least two points are required (N < 2).';
+      $('agree').textContent = '';
+      $('anim-note').textContent = '';
+      $('tab-anim').disabled = true; setMode('result');
+      draw(); return;
+    }
+
+    const reps = repsFor(n);
+    const tBf = medianTime(() => bruteForce(pts), reps);
+    const tDc = medianTime(() => closestDC(pts), reps);
+    state.bf = bruteForce(pts);
+    state.dc = closestDC(pts, { info: state.info });
+
+    const pr = p => `(${fmt(p[0].x)}, ${fmt(p[0].y)}) (${fmt(p[1].x)}, ${fmt(p[1].y)})`;
+    $('out').innerHTML =
+      `<span class="b">Brute-Force:</span> ${fmt6(state.bf.d)} ${pr(state.bf.pair)}\n` +
+      `<span class="d">Divide-and-Conquer:</span> ${fmt6(state.dc.d)} ${pr(state.dc.pair)}\n` +
+      `Time: Brute-Force = ${tBf.toFixed(3)} ms, Divide-and-Conquer = ${tDc.toFixed(3)} ms`;
+    const ok = agree(state.bf.d, state.dc.d);
+    const badge = $('agree');
+    badge.textContent = ok ? '✓ Both algorithms agree on the minimum distance' : '✗ The algorithms disagree!';
+    badge.className = 'badge' + (ok ? '' : ' bad');
+
+    if (n <= MAX_ANIM_N) {
+      closestDC(pts, { rec: state.steps });
+      $('tab-anim').disabled = false;
+      $('anim-note').textContent = n > 60
+        ? 'Large input: the animation shows divide, conquer and merge steps but skips the individual strip comparisons. Use N ≤ 60 to see every comparison.'
+        : '';
+    } else {
+      $('tab-anim').disabled = true;
+      $('anim-note').textContent = `The animation is available for N ≤ ${MAX_ANIM_N}. The result view works for any N.`;
+      if (state.mode === 'anim') setMode('result');
+    }
+    $('a-slider').max = Math.max(0, state.steps.length - 1);
+    $('a-slider').value = 0;
+    draw();
+  }
+
+  /* ---------- drawing the plane ---------- */
+  function makeView(w, h, pts) {
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const p of pts) { if (p.x < x0) x0 = p.x; if (p.x > x1) x1 = p.x; if (p.y < y0) y0 = p.y; if (p.y > y1) y1 = p.y; }
+    if (!pts.length) { x0 = y0 = 0; x1 = y1 = 100; }
+    let rx = x1 - x0, ry = y1 - y0;
+    if (rx <= 0 && ry <= 0) { rx = ry = 1; }
+    const pad = 34;
+    const sc = Math.min(rx > 0 ? (w - 2 * pad) / rx : Infinity, ry > 0 ? (h - 2 * pad) / ry : Infinity);
+    const ox = (w - rx * sc) / 2 - x0 * sc, oy = (h + ry * sc) / 2 + y0 * sc;
+    return { sx: x => ox + x * sc, sy: y => oy - y * sc, sc, x0, x1, y0, y1 };
+  }
+
+  function drawGrid(ctx, v, w, h) {
+    ctx.font = '11px system-ui, sans-serif';
+    ctx.fillStyle = css('--muted'); ctx.strokeStyle = css('--grid'); ctx.lineWidth = 1;
+    const xl = (0 - 0), xr = w;                     // visible world bounds
+    const wx0 = (xl - (v.sx(0))) / v.sc, wx1 = (xr - v.sx(0)) / v.sc;
+    const wy1 = (v.sy(0) - 0) / v.sc, wy0 = (v.sy(0) - h) / v.sc;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    for (const t of niceTicks(wx0, wx1, Math.max(3, Math.floor(w / 110)))) {
+      const X = Math.round(v.sx(t)) + .5;
+      ctx.beginPath(); ctx.moveTo(X, 0); ctx.lineTo(X, h); ctx.stroke();
+      ctx.fillText(fmt(t), X, h - 3);
+    }
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    for (const t of niceTicks(wy0, wy1, Math.max(3, Math.floor(h / 80)))) {
+      const Y = Math.round(v.sy(t)) + .5;
+      ctx.beginPath(); ctx.moveTo(0, Y); ctx.lineTo(w, Y); ctx.stroke();
+      ctx.fillText(fmt(t), 4, Y - 7);
+    }
+  }
+
+  const pointR = n => n > 3000 ? 1.6 : n > 1000 ? 2.2 : n > 200 ? 3 : 4.5;
+
+  function drawPoints(ctx, v, pts, r, color) {
+    ctx.fillStyle = color;
+    for (const p of pts) { ctx.beginPath(); ctx.arc(v.sx(p.x), v.sy(p.y), r, 0, 6.2832); ctx.fill(); }
+  }
+  function drawLine(ctx, v, a, b, color, width, dash) {
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash || []);
+    ctx.beginPath(); ctx.moveTo(v.sx(a.x), v.sy(a.y)); ctx.lineTo(v.sx(b.x), v.sy(b.y)); ctx.stroke(); ctx.restore();
+  }
+  function vLine(ctx, v, x, h, color, width, dash) {
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash || []);
+    const X = v.sx(x); ctx.beginPath(); ctx.moveTo(X, 0); ctx.lineTo(X, h); ctx.stroke(); ctx.restore();
+  }
+  function band(ctx, v, x0, x1, h, color, alpha) {
+    ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = color;
+    const A = v.sx(x0), B = v.sx(x1); ctx.fillRect(Math.min(A, B), 0, Math.max(1.5, Math.abs(B - A)), h); ctx.restore();
+  }
+  function ring(ctx, v, p, r, color, width) {
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = width;
+    ctx.beginPath(); ctx.arc(v.sx(p.x), v.sy(p.y), r, 0, 6.2832); ctx.stroke(); ctx.restore();
+  }
+  function cross(ctx, v, p, r, color) {
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 2.2;
+    const X = v.sx(p.x), Y = v.sy(p.y);
+    ctx.beginPath(); ctx.moveTo(X - r, Y - r); ctx.lineTo(X + r, Y + r); ctx.moveTo(X - r, Y + r); ctx.lineTo(X + r, Y - r); ctx.stroke(); ctx.restore();
+  }
+
+  function drawResult(ctx, v, w, h) {
+    const pts = state.points, r = pointR(pts.length);
+    const info = state.info;
+    if (info.splitX !== undefined) {
+      band(ctx, v, info.splitX - info.d0, info.splitX + info.d0, h, css('--strip'), 0.28);
+      vLine(ctx, v, info.splitX, h, css('--ink'), 1.2, [6, 4]);
+    }
+    drawPoints(ctx, v, pts, r, css('--pt'));
+    if (info.strip && info.strip.length) drawPoints(ctx, v, info.strip, r + .4, '#f59e0b');
+    if (state.bf) {
+      const [a, b] = state.bf.pair;
+      drawLine(ctx, v, a, b, css('--brute'), 2.4);
+      ring(ctx, v, a, r + 6, css('--brute'), 2.2); ring(ctx, v, b, r + 6, css('--brute'), 2.2);
+    }
+    if (state.dc) {
+      const [a, b] = state.dc.pair;
+      drawLine(ctx, v, a, b, css('--dc'), 2.2, [5, 4]);
+      cross(ctx, v, a, r + 3, css('--dc')); cross(ctx, v, b, r + 3, css('--dc'));
+    }
+    if (info.splitX !== undefined) {
+      ctx.fillStyle = css('--muted'); ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillText(`top-level split x = ${fmt(info.splitX)},  d = ${fmt6(info.d0)},  strip width 2d = ${fmt6(2 * info.d0)}`, 8, 6);
+    }
+  }
+
+  function drawAnim(ctx, v, w, h) {
+    const pts = state.points, steps = state.steps, s = steps[state.idx], r = pointR(pts.length);
+    // open splits (recursion path)
+    const open = [];
+    for (let i = 0; i <= state.idx; i++) {
+      if (steps[i].type === 'split') open.push(steps[i]); else if (steps[i].type === 'merged') open.pop();
+    }
+    // current region
+    if (s.xmin !== undefined) {
+      const col = DEPTH_COLORS[s.depth % DEPTH_COLORS.length];
+      band(ctx, v, s.xmin, s.xmax, h, col, 0.08);
+    }
+    if (s.d0 !== undefined) band(ctx, v, s.splitX - s.d0, s.splitX + s.d0, h, css('--strip'), 0.30);
+    for (const o of open) vLine(ctx, v, o.splitX, h, css('--muted'), 1, [3, 5]);
+    if (s.splitX !== undefined && s.type !== 'merged') vLine(ctx, v, s.splitX, h, css('--ink'), 1.6, [7, 4]);
+
+    drawPoints(ctx, v, pts, r, css('--pt'));
+    const col = DEPTH_COLORS[s.depth % DEPTH_COLORS.length];
+    const active = new Set(s.ids || []);
+    ctx.fillStyle = col;
+    for (const p of pts) if (active.has(p.id)) { ctx.beginPath(); ctx.arc(v.sx(p.x), v.sy(p.y), r + .8, 0, 6.2832); ctx.fill(); }
+    if (s.stripIds) {
+      const inStrip = new Set(s.stripIds);
+      for (const p of pts) if (inStrip.has(p.id)) ring(ctx, v, p, r + 3, '#f59e0b', 2);
+    }
+    if (s.best && s.best.pair) {
+      drawLine(ctx, v, s.best.pair[0], s.best.pair[1], css('--best'), 3);
+      ring(ctx, v, s.best.pair[0], r + 6, css('--best'), 2.2); ring(ctx, v, s.best.pair[1], r + 6, css('--best'), 2.2);
+    }
+    if (s.type === 'cmp') {
+      drawLine(ctx, v, s.a, s.b, '#f97316', 2.4, [4, 3]);
+      ring(ctx, v, s.a, r + 4, '#f97316', 2.4); ring(ctx, v, s.b, r + 4, '#f97316', 2.4);
+    }
+    if (s.final) {   // show both algorithms' answers on the last frame
+      const [a, b] = state.bf.pair;
+      ring(ctx, v, a, r + 10, css('--brute'), 2); ring(ctx, v, b, r + 10, css('--brute'), 2);
+      const [c, d] = state.dc.pair;
+      cross(ctx, v, c, r + 3, css('--dc')); cross(ctx, v, d, r + 3, css('--dc'));
+    }
+    ctx.fillStyle = css('--muted'); ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText(`recursion depth ${s.depth}`, 8, 6);
+
+    $('step-box').innerHTML = `<small>Step ${state.idx + 1} of ${steps.length} · ${labelFor(s.type)}</small>${s.text}`;
+    $('a-slider').value = state.idx;
+  }
+  const labelFor = t => ({ split: 'Divide', base: 'Base case', merge: 'Conquer → strip', cmp: 'Strip comparison', merged: 'Merge' }[t]);
+
+  function draw() {
+    const c = $('plot');
+    const { ctx, w, h } = setupCanvas(c, 0.62, 340, 640);
+    ctx.clearRect(0, 0, w, h);
+    const pts = state.points;
+    if (pts.length < 2) {
+      ctx.fillStyle = css('--muted'); ctx.font = '15px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(pts.length ? 'Need at least 2 points.' : 'No points yet.', w / 2, h / 2);
+      return;
+    }
+    const v = makeView(w, h, pts);
+    drawGrid(ctx, v, w, h);
+    if (state.mode === 'anim' && state.steps.length) drawAnim(ctx, v, w, h); else drawResult(ctx, v, w, h);
+  }
+
+  /* ---------- animation controls ---------- */
+  function setMode(m) {
+    state.mode = m;
+    $('tab-result').setAttribute('aria-pressed', String(m === 'result'));
+    $('tab-anim').setAttribute('aria-pressed', String(m === 'anim'));
+    $('anim-ui').hidden = m !== 'anim';
+    $('legend-anim').hidden = m !== 'anim';
+    $('legend-result').hidden = m === 'anim';
+    if (m !== 'anim') stopPlay();
+    draw();
+  }
+  function goto_(i) { state.idx = Math.max(0, Math.min(state.steps.length - 1, i)); draw(); }
+  function stopPlay() {
+    if (state.timer) { clearInterval(state.timer); state.timer = null; }
+    const b = $('a-play'); b.textContent = '▶ Play'; b.setAttribute('aria-label', 'Play');
+  }
+  function startPlay() {
+    if (state.idx >= state.steps.length - 1) state.idx = 0;
+    const b = $('a-play'); b.textContent = '⏸ Pause'; b.setAttribute('aria-label', 'Pause');
+    state.timer = setInterval(() => {
+      if (state.idx >= state.steps.length - 1) { stopPlay(); return; }
+      goto_(state.idx + 1);
+    }, parseInt($('a-speed').value, 10));
+    draw();
+  }
+  const togglePlay = () => state.timer ? stopPlay() : startPlay();
+
+  /* ---------- chart ---------- */
+  const bench = { rows: [] };
+  function drawChart() {
+    const { ctx, w, h } = setupCanvas($('chart'), 0.5, 300, 460);
+    ctx.clearRect(0, 0, w, h);
+    const rows = bench.rows, log = $('log').checked;
+    const L = 62, R = 16, T = 16, B = 44, pw = w - L - R, ph = h - T - B;
+    ctx.font = '12px system-ui, sans-serif'; ctx.fillStyle = css('--muted'); ctx.strokeStyle = css('--grid');
+    if (!rows.length) {
+      ctx.textAlign = 'center'; ctx.fillText('Run the benchmark to see the graph.', w / 2, h / 2); return;
+    }
+    const tf = v => log ? Math.log10(Math.max(v, 0.001)) : v;
+    const xs = rows.map(r => r.n), xmax = Math.max(...xs), xmin = Math.min(...xs);
+    const ymaxRaw = Math.max(...rows.map(r => Math.max(r.bf, r.dc))), yminRaw = Math.min(...rows.map(r => Math.min(r.bf, r.dc)));
+    let X0, X1, Y0, Y1;
+    if (log) { X0 = Math.log10(xmin) - .05; X1 = Math.log10(xmax) + .05; Y0 = Math.floor(tf(Math.max(yminRaw, 0.001))); Y1 = Math.ceil(tf(ymaxRaw)); if (Y1 <= Y0) Y1 = Y0 + 1; }
+    else { X0 = 0; X1 = xmax * 1.03; Y0 = 0; Y1 = ymaxRaw * 1.08 || 1; }
+    const px = n => L + ((log ? Math.log10(n) : n) - X0) / (X1 - X0) * pw;
+    const py = t => T + ph - (tf(t) - Y0) / (Y1 - Y0) * ph;
+
+    // grid + y ticks
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    if (log) { for (let e = Y0; e <= Y1; e++) { const Y = T + ph - (e - Y0) / (Y1 - Y0) * ph; line(ctx, L, Y, L + pw, Y); ctx.fillText(fmt(Math.pow(10, e)), L - 6, Y); } }
+    else for (const t of niceTicks(0, Y1, 5)) { const Y = py(t); line(ctx, L, Y, L + pw, Y); ctx.fillText(fmt(t), L - 6, Y); }
+    // x ticks at the measured sizes
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const skip = Math.ceil(rows.length / Math.max(1, Math.floor(pw / 60)));
+    rows.forEach((r, i) => { if (i % skip === 0 || i === rows.length - 1) { const X = px(r.n); line(ctx, X, T, X, T + ph); ctx.fillText(String(r.n), X, T + ph + 6); } });
+    ctx.fillText('N (number of points)', L + pw / 2, h - 18);
+    ctx.save(); ctx.translate(14, T + ph / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('running time (ms)', 0, 0); ctx.restore();
+
+    series(ctx, rows, r => px(r.n), r => py(r.bf), css('--brute'), 'circle');
+    series(ctx, rows, r => px(r.n), r => py(r.dc), css('--dc'), 'square');
+
+    // legend
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = css('--brute'); ctx.fillRect(L + 10, T + 8, 14, 3); ctx.fillText('Brute-Force  O(N²)', L + 30, T + 10);
+    ctx.fillStyle = css('--dc');    ctx.fillRect(L + 10, T + 28, 14, 3); ctx.fillText('Divide-and-Conquer  O(N log N)', L + 30, T + 30);
+  }
+  function line(ctx, x0, y0, x1, y1) { ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); }
+  function series(ctx, rows, fx, fy, color, shape) {
+    ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2.2;
+    ctx.beginPath(); rows.forEach((r, i) => i ? ctx.lineTo(fx(r), fy(r)) : ctx.moveTo(fx(r), fy(r))); ctx.stroke();
+    rows.forEach(r => { ctx.beginPath(); if (shape === 'circle') ctx.arc(fx(r), fy(r), 4, 0, 6.2832); else ctx.rect(fx(r) - 4, fy(r) - 4, 8, 8); ctx.fill(); });
+    ctx.restore();
+  }
+
+  async function runBenchmark() {
+    const btn = $('bench'); btn.disabled = true; bench.rows = []; $('bench-table').hidden = false;
+    const tbody = $('bench-table').tBodies[0]; tbody.innerHTML = '';
+    const sizes = [250, 500, 1000, 2000, 4000, 8000, 16000];
+    const rng = makeRng(2024);
+    for (const n of sizes) {
+      $('bench-status').textContent = `Timing N = ${n}…`;
+      await new Promise(r => setTimeout(r, 20));
+      const pts = generatePoints(n, 'random', rng), reps = repsFor(n);
+      const bf = medianTime(() => bruteForce(pts), reps), dc = medianTime(() => closestDC(pts), reps);
+      const ok = agree(bruteForce(pts).d, closestDC(pts).d);
+      bench.rows.push({ n, bf, dc, ok });
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${n}</td><td>${bf.toFixed(3)}</td><td>${dc.toFixed(3)}</td><td>${(bf / Math.max(dc, 1e-6)).toFixed(1)}×</td><td>${ok ? '✓' : '✗'}</td>`;
+      tbody.appendChild(tr);
+      drawChart();
+    }
+    $('bench-status').textContent = 'Done.'; btn.disabled = false;
+  }
+
+  /* ---------- tests ---------- */
+  function showTests() {
+    const ul = $('test-list'); ul.innerHTML = '';
+    for (const r of runTests()) {
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="${r.ok ? 'pass' : 'fail'}">${r.ok ? 'PASS' : 'FAIL'}</span>  ` + r.text.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+      li.style.whiteSpace = 'pre-wrap';
+      ul.appendChild(li);
+    }
+  }
+
+  /* ---------- wiring ---------- */
+  $('go').addEventListener('click', run);
+  $('newseed').addEventListener('click', () => { $('seed').value = Math.floor(Math.random() * 100000); run(); });
+  ['n', 'seed'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') run(); }));
+  $('dataset').addEventListener('change', run);
+  $('tab-result').addEventListener('click', () => setMode('result'));
+  $('tab-anim').addEventListener('click', () => { if (!$('tab-anim').disabled) { state.idx = 0; setMode('anim'); } });
+  $('a-reset').addEventListener('click', () => { stopPlay(); goto_(0); });
+  $('a-prev').addEventListener('click', () => { stopPlay(); goto_(state.idx - 1); });
+  $('a-next').addEventListener('click', () => { stopPlay(); goto_(state.idx + 1); });
+  $('a-play').addEventListener('click', togglePlay);
+  $('a-slider').addEventListener('input', e => { stopPlay(); goto_(parseInt(e.target.value, 10)); });
+  $('a-speed').addEventListener('change', () => { if (state.timer) { stopPlay(); startPlay(); } });
+  $('bench').addEventListener('click', runBenchmark);
+  $('log').addEventListener('change', drawChart);
+  $('tests').addEventListener('click', showTests);
+  document.addEventListener('keydown', e => {
+    if (state.mode !== 'anim' || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) && document.activeElement.type !== 'range') return;
+    if (e.key === 'ArrowRight') { stopPlay(); goto_(state.idx + 1); }
+    else if (e.key === 'ArrowLeft') { stopPlay(); goto_(state.idx - 1); }
+    else if (e.key === ' ' && document.activeElement.tagName !== 'BUTTON') { e.preventDefault(); togglePlay(); }
+  });
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { draw(); drawChart(); }, 120); });
+
+  run(); drawChart(); showTests();
+})();
+</script>
+</body>
+</html>
