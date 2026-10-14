@@ -26,3 +26,6 @@ un.bat: Launch script for local HTTP server & visualizer
 2. **Launch Visualizer**: run 
 un.bat (navigate to http://localhost:8080/)
 3. **Run Unit Tests**: run 	est.bat
+
+<img width="926" height="503" alt="image" src="https://github.com/user-attachments/assets/6a16a641-6043-4f42-8448-8c390fd1d57d" />
+
