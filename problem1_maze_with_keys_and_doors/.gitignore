@@ -1,0 +1,15 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# macOS system files
+.DS_Store
+
+# Temporary outputs & test runs
+output_*.csv
+generated_maze.csv
+shortest_path_marked.csv
+test_out_*.csv
+out*.csv
+current_maze.js
