@@ -54,6 +54,19 @@ Find the length of the shortest path from `S` to `E`.
 
 ---
 
+## 📸 Output & Visualizer Screenshots
+
+### 1. Interactive Web Visualizer — Solved Traversal with Key Inventory & Door Unlocks
+![Visualizer Solved](screenshots/visualizer_solved.png)
+
+### 2. Interactive Web Visualizer — Grid Setup & Controls
+![Visualizer Initial](screenshots/visualizer_initial.png)
+
+### 3. Terminal Execution Output — Output 1 & Output 2 Marked Grid Preview
+![Terminal Output](screenshots/terminal_output.png)
+
+---
+
 ## 🚀 Quick Start & How to Run
 
 ### 1. Interactive Mode (Standard CLI)
